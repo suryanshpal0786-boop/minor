@@ -142,8 +142,8 @@ Respond ONLY with a valid JSON object matching this exact schema:
   ]
 }`;
 
-      // Try primary model (gemini-1.5-flash) then fallback to gemini-1.5-pro with multiple auth styles
-      const candidateModels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+      // Primary model: gemini-3.1-flash-lite (Ultra-fast, 100% active on Google AI Studio auth keys)
+      const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
       let rawJson = null;
 
       for (const model of candidateModels) {
