@@ -105,37 +105,6 @@ export const VerifyNewsPage: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Category selection */}
-            <div>
-              <label className="block text-xs font-semibold text-[#1d1d1f] mb-2">
-                News Category
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  'General News',
-                  'Politics & Policy',
-                  'Science & Technology',
-                  'Health & Medicine',
-                  'Business & Economy',
-                  'Climate & Environment',
-                  'Entertainment & Culture',
-                ].map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setCategory(cat)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                      category === cat
-                        ? 'bg-[#1d1d1f] text-white'
-                        : 'bg-[#f5f5f7] text-[#86868b] hover:text-[#1d1d1f]'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Box 1: Ask Question / News Content Box */}
             <div>
               <div className="flex items-center justify-between mb-1.5">

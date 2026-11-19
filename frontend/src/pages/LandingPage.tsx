@@ -155,32 +155,6 @@ export const LandingPage: React.FC = () => {
           className="max-w-3xl mx-auto"
         >
           <div className="bg-white rounded-3xl border border-[#e5e5e7] p-6 sm:p-8 shadow-apple-card hover:shadow-apple-hover transition-all duration-300">
-            {/* Category selection bar */}
-            <div className="flex items-center space-x-2 overflow-x-auto pb-3 mb-4 scrollbar-none text-xs">
-              <span className="text-[#86868b] font-medium mr-1 whitespace-nowrap">Category:</span>
-              {[
-                'General News',
-                'Politics & Policy',
-                'Science & Technology',
-                'Health & Medicine',
-                'Business & Economy',
-                'Climate & Environment',
-              ].map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setCategory(cat)}
-                  className={`px-3 py-1 rounded-full whitespace-nowrap font-medium transition ${
-                    category === cat
-                      ? 'bg-[#1d1d1f] text-white shadow-sm'
-                      : 'bg-[#f5f5f7] text-[#86868b] hover:text-[#1d1d1f]'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
             {errorMessage && (
               <div className="mb-4 p-3 rounded-2xl bg-[#fff2f1] border border-[#fbcbc8] text-xs text-[#c9251c] flex items-center space-x-2">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
