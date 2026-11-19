@@ -80,90 +80,120 @@ export const runAIAnalysis = async (
   await new Promise((r) => setTimeout(r, 350));
 
   // Check for Google Gemini AI Key
-  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
   if (geminiApiKey) {
     try {
       if (onProgress) onProgress({ step: 3, message: 'Consulting Google Gemini Neural Fact-Checking Model...', percent: 65 });
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-      const prompt = `You are TruthLens AI, an objective news intelligence, credibility verification, and explainable AI system.
-Evaluate the following news query / headline / claim / article:
+
+      const prompt = `You are TruthLens AI, an expert investigative fact-checker, news intelligence, and explainable AI system.
+Your mission is to provide an ACCURATE, RIGOROUS, and OBJECTIVE verification of the following news query, question, claim, or article:
 Headline / Question: "${cleanHeadline}"
 Content / Claim: "${cleanContent}"
 Category: "${category}"
 Source URL: "${sourceUrl}"
 
-Provide an objective, probabilistic credibility assessment. Respond ONLY with a valid JSON object matching this exact schema:
+ANALYSIS GUIDELINES:
+1. Ground your assessment in established factual reality and consensus from accredited international news wires (Reuters, Associated Press, BBC, AFP, PIB Fact Check, Snopes, PolitiFact, and peer-reviewed journals).
+2. ACCURATELY determine the classification:
+   - "Appears Credible": The core facts are confirmed and corroborated by verifiable reputable sources.
+   - "Potentially Misleading": Contains some truth but suffers from misleading framing, missing critical context, selective quoting, or exaggerated statistics.
+   - "Suspicious": The claim is demonstrably false, fabricated, a known internet hoax, conspiracy theory, or originates from a flagged disreputable source.
+   - "Inconclusive": The claim cannot be verified empirically or concerns unverified developing events.
+3. Provide deep, understandable, and articulate explanations in the detailedReasoning and analysisSummary fields.
+
+Respond ONLY with a valid JSON object matching this exact schema:
 {
   "classification": "Appears Credible" | "Potentially Misleading" | "Suspicious" | "Inconclusive",
-  "confidenceScore": <integer between 50 and 96>,
-  "analysisSummary": "<2-3 sentence overview of credibility evaluation>",
-  "detailedReasoning": "<thorough explanation of factual claims, linguistic tone, and source plausibility>",
+  "confidenceScore": <integer between 50 and 98>,
+  "analysisSummary": "<2-3 sentence clear, authoritative overview of the factual evaluation>",
+  "detailedReasoning": "<comprehensive factual breakdown explaining why this is true, misleading, or fabricated, citing verified facts and timeline>",
   "headlineAnalysis": {
     "sensationalismScore": <integer 0-100>,
     "clickbaitRating": "Low" | "Moderate" | "High" | "Extreme",
     "isManipulative": <boolean>,
-    "notes": "<concise observation on headline phrasing>"
+    "notes": "<concise observation on phrasing, tone, and clickbait triggers>"
   },
   "languageAnalysis": {
     "objectivityScore": <integer 0-100>,
-    "emotionalCharge": "<e.g. Measured / Objective or Alarmist / Sensational>",
+    "emotionalCharge": "<e.g. Measured / Factual, Sensationalist, or Panic-Inducing>",
     "urgencyLevel": "None" | "Elevated" | "High / Urgent",
     "capitalizationAnomalies": <integer>,
     "punctuationExcess": <integer>
   },
   "suspiciousIndicators": [
-    { "type": "linguistic" | "attribution" | "claim" | "source", "label": "<indicator name>", "description": "<explanation>", "severity": "low" | "medium" | "high" }
+    { "type": "linguistic" | "attribution" | "claim" | "source", "label": "<indicator title>", "description": "<detailed observation>", "severity": "low" | "medium" | "high" }
   ],
   "claimsToVerify": [
-    { "claim": "<core statement>", "verificationStatus": "Corroborated" | "Unsupported" | "Requires Verification" | "Context Needed", "note": "<fact check guidance>" }
+    { "claim": "<specific statement extracted from query>", "verificationStatus": "Corroborated" | "Unsupported" | "Requires Verification" | "Context Needed", "note": "<fact check guidance>" }
   ],
   "sourceAssessment": {
-    "publisher": "<identified or inferred publisher/domain>",
-    "domain": "<domain name or 'Direct Query'>",
+    "publisher": "<publisher or 'Direct Inquiry'>",
+    "domain": "<domain or 'Direct Submission'>",
     "transparency": "High" | "Moderate" | "Low" | "Unverifiable",
-    "authorInfo": "<author or 'Anonymous / Unspecified'>",
-    "reliabilityTier": "<e.g. Authoritative / Verified, Satire / Parody, Flagged Disinformation, or Independent Web Source>",
-    "notes": "<context regarding source credibility>"
+    "authorInfo": "<author byline or 'Unspecified'>",
+    "reliabilityTier": "<e.g. Authoritative / Verified Wire, Questionable / Hoax, or Independent Source>",
+    "notes": "<context regarding source provenance>"
   },
-  "limitations": "This automated assessment is probabilistic and reflects AI evaluation. It does not replace independent primary journalism.",
+  "limitations": "Automated AI assessments reflect probabilistic comparison against public factual records. Automated evaluations do not substitute for official primary documentation.",
   "recommendedVerificationSteps": [
-    "<actionable verification step 1>",
-    "<actionable verification step 2>",
-    "<actionable verification step 3>"
+    "<concrete step 1: e.g. Cross-reference with Reuters or AP>",
+    "<concrete step 2: e.g. Review official governmental or scientific portal>",
+    "<concrete step 3: e.g. Search dedicated fact-checking registries>"
   ]
 }`;
 
-      const resp = await axios.post(
-        geminiUrl,
-        {
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: 'application/json',
-          },
-        },
-        { timeout: 10000 }
-      );
+      // Try primary model (gemini-1.5-flash) then fallback to gemini-1.5-pro
+      const candidateModels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+      let rawJson = null;
 
-      const rawJson = resp.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      for (const model of candidateModels) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+          const resp = await axios.post(
+            geminiUrl,
+            {
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.15,
+                responseMimeType: 'application/json',
+              },
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': geminiApiKey,
+              },
+              timeout: 12000,
+            }
+          );
+          rawJson = resp.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawJson) break;
+        } catch (mErr) {
+          console.warn(`Model ${model} attempt notice:`, mErr.response?.data?.error?.message || mErr.message);
+        }
+      }
+
       if (rawJson) {
-        const parsed = JSON.parse(rawJson);
-        if (onProgress) onProgress({ step: 5, message: 'Finalizing explainable AI assessment...', percent: 100 });
+        // Strip markdown backticks if returned
+        const cleanedJson = rawJson.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleanedJson);
+        if (onProgress) onProgress({ step: 5, message: 'Finalizing neural fact-checking report...', percent: 100 });
+
         return {
           submittedHeadline: cleanHeadline || (cleanContent.slice(0, 90) + '...'),
           submittedContent: cleanContent,
           category,
           sourceUrl,
           classification: parsed.classification || 'Inconclusive',
-          confidenceScore: parsed.confidenceScore || 70,
+          confidenceScore: parsed.confidenceScore || 75,
           analysisSummary: parsed.analysisSummary || '',
           detailedReasoning: parsed.detailedReasoning || '',
-          headlineAnalysis: parsed.headlineAnalysis || { sensationalismScore: 20, clickbaitRating: 'Low', isManipulative: false, notes: 'Evaluated by AI' },
+          headlineAnalysis: parsed.headlineAnalysis || { sensationalismScore: 20, clickbaitRating: 'Low', isManipulative: false, notes: 'Evaluated by Neural Model' },
           languageAnalysis: parsed.languageAnalysis || { objectivityScore: 75, emotionalCharge: 'Measured', urgencyLevel: 'Normal', capitalizationAnomalies: 0, punctuationExcess: 0 },
           suspiciousIndicators: parsed.suspiciousIndicators || [],
           claimsToVerify: parsed.claimsToVerify || [],
-          sourceAssessment: parsed.sourceAssessment || { publisher: 'Direct Submission', domain: 'Direct Submission', transparency: 'Unverifiable', authorInfo: 'Direct query', reliabilityTier: 'Direct Submission', notes: 'Evaluated by AI' },
-          limitations: parsed.limitations || 'This automated assessment is probabilistic and reflects AI evaluation. It does not replace independent primary journalism.',
+          sourceAssessment: parsed.sourceAssessment || { publisher: 'Direct Submission', domain: 'Direct Submission', transparency: 'Unverifiable', authorInfo: 'Direct query', reliabilityTier: 'Direct Submission', notes: 'Evaluated by Neural Model' },
+          limitations: parsed.limitations || 'Automated AI assessments reflect probabilistic comparison against public factual records.',
           recommendedVerificationSteps: parsed.recommendedVerificationSteps || [
             'Cross-reference claims with established international news agencies (e.g. Reuters, AP, BBC).',
             'Consult official government, scientific, or academic registries.',
