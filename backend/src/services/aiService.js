@@ -180,6 +180,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
         if (onProgress) onProgress({ step: 5, message: 'Finalizing neural fact-checking report...', percent: 100 });
 
         return {
+          modelEngine: 'Google Gemini Neural AI',
           submittedHeadline: cleanHeadline || (cleanContent.slice(0, 90) + '...'),
           submittedContent: cleanContent,
           category,
@@ -202,7 +203,10 @@ Respond ONLY with a valid JSON object matching this exact schema:
         };
       }
     } catch (geminiErr) {
-      console.warn('⚠️ [TruthLens AI] Gemini API call skipped or timed out, using built-in NLP engine:', geminiErr.message);
+      console.error('⚠️ [TruthLens AI] Gemini API call skipped or timed out:');
+      console.error('Error status:', geminiErr.response?.status);
+      console.error('Error message:', geminiErr.response?.data?.error?.message || geminiErr.message);
+      console.warn('⚡ [Fallback] Using built-in NLP engine.');
     }
   }
 
@@ -471,6 +475,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
   }
 
   return {
+    modelEngine: 'TruthLens Stylometric NLP Engine',
     submittedHeadline: cleanHeadline || (cleanContent.slice(0, 90) + '...'),
     submittedContent: cleanContent,
     category,

@@ -93,6 +93,10 @@ const NewsAnalysisSchema = new mongoose.Schema(
       reliabilityTier: { type: String, default: 'Unrated' },
       notes: { type: String, default: '' },
     },
+    modelEngine: {
+      type: String,
+      default: 'Google Gemini AI',
+    },
     limitations: {
       type: String,
       default:
