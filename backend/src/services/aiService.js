@@ -142,11 +142,12 @@ Respond ONLY with a valid JSON object matching this exact schema:
   ]
 }`;
 
-      // Try primary model (gemini-1.5-flash) then fallback to gemini-1.5-pro
+      // Try primary model (gemini-1.5-flash) then fallback to gemini-1.5-pro with multiple auth styles
       const candidateModels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
       let rawJson = null;
 
       for (const model of candidateModels) {
+        // Attempt 1: Standard query param + x-goog-api-key header
         try {
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
           const resp = await axios.post(
@@ -169,7 +170,36 @@ Respond ONLY with a valid JSON object matching this exact schema:
           rawJson = resp.data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawJson) break;
         } catch (mErr) {
-          console.warn(`Model ${model} attempt notice:`, mErr.response?.data?.error?.message || mErr.message);
+          console.warn(`Model ${model} (Query Param) attempt:`, mErr.response?.data?.error?.message || mErr.message);
+        }
+
+        // Attempt 2: Bearer auth header for Google AI Studio Auth Keys
+        if (!rawJson) {
+          try {
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+            const resp = await axios.post(
+              geminiUrl,
+              {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.15,
+                  responseMimeType: 'application/json',
+                },
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${geminiApiKey}`,
+                  'x-goog-api-key': geminiApiKey,
+                },
+                timeout: 12000,
+              }
+            );
+            rawJson = resp.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawJson) break;
+          } catch (bErr) {
+            console.warn(`Model ${model} (Bearer Header) attempt:`, bErr.response?.data?.error?.message || bErr.message);
+          }
         }
       }
 
