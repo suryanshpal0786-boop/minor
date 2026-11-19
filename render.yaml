@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: truthlens-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: truthlens_super_secret_jwt_key_2026_apple_bca
+      - key: MONGODB_URI
+        sync: false
